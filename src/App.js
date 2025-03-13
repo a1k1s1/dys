@@ -100,8 +100,7 @@ function DyslexiaScreeningApp() {
     }
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (formData) => {
     try {
       const response = await fetch('http://localhost:4001/api/login', {
         method: 'POST',
@@ -109,8 +108,8 @@ function DyslexiaScreeningApp() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: loginEmail,
-          password: loginPassword
+          email: formData.email,
+          password: formData.password
         }),
       });
       
@@ -118,9 +117,6 @@ function DyslexiaScreeningApp() {
       if (response.ok) {
         setIsLoggedIn(true);
         setShowLoginModal(false);
-        // Reset form
-        setLoginEmail('');
-        setLoginPassword('');
       } else {
         alert(data.message || 'Login failed');
       }
@@ -129,7 +125,6 @@ function DyslexiaScreeningApp() {
       alert('Login failed. Please try again.');
     }
   };
-
   const handleAnswer = (answerIndex) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
@@ -259,138 +254,49 @@ function DyslexiaScreeningApp() {
     }
   };
 
-  // Signup Modal
-  const SignupModal = () => (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-blue-800">Create Account</h2>
-          <button 
-            onClick={() => setShowSignupModal(false)}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <FaTimes className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSignup} className="space-y-6">
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">Full Name</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={signupName}
-                onChange={(e) => setSignupName(e.target.value)}
-                placeholder="John Doe"
-                className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                required
-                onKeyDown={(e) => e.key === 'Enter' ? handleSignup(e) : null}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">Email</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-gray-400" />
-              </div>
-              <input
-                type="email"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">Password</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="text-gray-400" />
-              </div>
-              <input
-                type="password"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-                placeholder="••••••••"
-                className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">Role</label>
-            <div className="relative">
-              <select
-                value={signupRole}
-                onChange={(e) => setSignupRole(e.target.value)}
-                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-              >
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-                <option value="parent">Parent</option>
-              </select>
-            </div>
-          </div>
-          
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-xl
-              font-medium transition-all hover:shadow-lg"
-          >
-            Sign Up
-          </button>
-          
-          <div className="text-center text-sm text-gray-600">
-            Already have an account? 
-            <button 
-              onClick={() => {
-                setShowSignupModal(false);
-                setShowLoginModal(true);
-              }}
-              className="text-blue-600 hover:text-blue-800 ml-1"
-            >
-              Login
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-
-  // Login Modal
-  const LoginModal = () => {
-    const emailInputRef = useRef(null);
-    const passwordInputRef = useRef(null);
-
+  // Move the modals outside the main component to prevent re-renders
+  const SignupModal = ({ onClose, onSubmit, email, setEmail, password, setPassword, name, setName, role, setRole }) => {
+    const nameInputRef = useRef(null);
+  
+    // Only focus the name input when the modal first opens
     useEffect(() => {
-      if (emailInputRef.current) {
-        emailInputRef.current.focus();
+      if (nameInputRef.current) {
+        nameInputRef.current.focus();
       }
-    }, []);
-
+    }, []); // Empty dependency array means this only runs once when the component mounts
+  
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in">
+        <div className="bg-white rounded-2xl p-6 max-w-[90%] sm:max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in mx-4">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-blue-800">Welcome Back</h2>
+            <h2 className="text-2xl font-bold text-blue-800">Create Account</h2>
             <button 
-              onClick={() => setShowLoginModal(false)}
+              onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <FaTimes className="w-5 h-5" />
             </button>
           </div>
           
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-6">
+            <div>
+              <label className="block text-gray-700 mb-2 font-medium">Full Name</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaUser className="text-gray-400" />
+                </div>
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="John Doe"
+                  className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  required
+                />
+              </div>
+            </div>
+            
             <div>
               <label className="block text-gray-700 mb-2 font-medium">Email</label>
               <div className="relative">
@@ -398,14 +304,12 @@ function DyslexiaScreeningApp() {
                   <FaUser className="text-gray-400" />
                 </div>
                 <input
-                  ref={emailInputRef}
                   type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
                   required
-                  onKeyDown={(e) => e.key === 'Enter' ? handleLogin(e) : null}
                 />
               </div>
             </div>
@@ -417,10 +321,9 @@ function DyslexiaScreeningApp() {
                   <FaLock className="text-gray-400" />
                 </div>
                 <input
-                  ref={passwordInputRef}
                   type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
                   required
@@ -428,21 +331,96 @@ function DyslexiaScreeningApp() {
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 rounded border-gray-300"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
+            <div>
+              <label className="block text-gray-700 mb-2 font-medium">Role</label>
+              <div className="relative">
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="parent">Parent</option>
+                </select>
               </div>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800">
-                Forgot password?
-              </a>
+            </div>
+            
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-xl
+                font-medium transition-all hover:shadow-lg"
+            >
+              Sign Up
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const LoginModal = ({ onClose, onSubmit }) => {
+    const formRef = useRef(null);
+    
+    const handleFormSubmit = (e) => {
+      e.preventDefault();
+      const formData = new FormData(formRef.current);
+      const email = formData.get('email');
+      const password = formData.get('password');
+      
+      // Call your onSubmit function with the values
+      onSubmit({ email, password });
+    };
+    
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl p-6 max-w-[90%] sm:max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in mx-4">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-blue-800">Welcome Back</h2>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              type="button"
+            >
+              <FaTimes className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email-input" className="block text-gray-700 mb-2 font-medium">Email</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaUser className="text-gray-400" />
+                </div>
+                <input
+                  id="email-input"
+                  name="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="password-input" className="block text-gray-700 mb-2 font-medium">Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="text-gray-400" />
+                </div>
+                <input
+                  id="password-input"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-10 w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
             </div>
             
             <button
@@ -452,25 +430,11 @@ function DyslexiaScreeningApp() {
             >
               Sign In
             </button>
-            
-            <div className="text-center text-sm text-gray-600">
-              Don't have an account? 
-              <button 
-                onClick={() => {
-                  setShowLoginModal(false);
-                  setShowSignupModal(true);
-                }}
-                className="text-blue-600 hover:text-blue-800 ml-1"
-              >
-                Sign up
-              </button>
-            </div>
           </form>
         </div>
       </div>
     );
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 font-sans">
       {/* Navigation */}
@@ -697,8 +661,31 @@ function DyslexiaScreeningApp() {
         </footer>
       )}
 
-      {showSignupModal && <SignupModal />}
-      {showLoginModal && <LoginModal />}
+      {showSignupModal && (
+        <SignupModal
+          onClose={() => setShowSignupModal(false)}
+          onSubmit={handleSignup}
+          email={signupEmail}
+          setEmail={setSignupEmail}
+          password={signupPassword}
+          setPassword={setSignupPassword}
+          name={signupName}
+          setName={setSignupName}
+          role={signupRole}
+          setRole={setSignupRole}
+        />
+      )}
+
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onSubmit={handleLogin}
+          email={loginEmail}
+          setEmail={setLoginEmail}
+          password={loginPassword}
+          setPassword={setLoginPassword}
+        />
+      )}
     </div>
   );
 }
