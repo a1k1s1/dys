@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.option-button:hover {
+  background-color: #f0f9ff;
+  border-color: #93c5fd;
+}
+
+.level-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 1rem;
+  transition: transform 0.2s;
+}
+
+.level-node:hover {
+  transform: scale(1.05);
+}
+
+.unlocked {
+  color: #f59e0b;
+}
+
+.locked {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.level-number {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.connection-line {
+  height: 2px;
+  background-color: #d1d5db;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+*/
