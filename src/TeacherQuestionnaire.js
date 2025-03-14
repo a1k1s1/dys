@@ -103,14 +103,20 @@ const TeacherQuestionnaire = () => {
   const submitToBackend = async () => {
     setSubmitting(true);
     try {
-      const response = await fetch('https://dys-back-olx7.onrender.com/submit-questionnaire', {
+      // Transform responses to match backend format
+      const formattedResponses = Object.entries(responses).reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+
+      const response = await fetch('http://localhost:4001/assessment/initial-questions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          responses,
-          submittedAt: new Date().toISOString()
+          userId: 'your-user-id-here', // You need to pass the actual user ID
+          ...formattedResponses
         }),
       });
       

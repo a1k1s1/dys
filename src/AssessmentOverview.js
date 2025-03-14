@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 function AssessmentOverview() {
   // Mock data - replace with actual state/props
   const status = {
-    parentQuestionnaire: true,
+    parentQuestionnaire: false,
     handwritingUpload: false,
     assessmentTest: false
   };
