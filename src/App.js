@@ -63,14 +63,18 @@ function DyslexiaScreeningApp() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // Remove token and user data from localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('role');
+    
     setIsLoggedIn(false);
-    // Clear any stored tokens or user data if needed
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:4001/api/signup', {
+      const response = await fetch('https://dys-back-olx7.onrender.com/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,6 +89,11 @@ function DyslexiaScreeningApp() {
       
       const data = await response.json();
       if (response.ok) {
+        // Store token and user data in localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('role', data.role);
+        
         setIsLoggedIn(true);
         setShowSignupModal(false);
         // Reset form
@@ -102,7 +111,7 @@ function DyslexiaScreeningApp() {
 
   const handleLogin = async (formData) => {
     try {
-      const response = await fetch('http://localhost:4001/api/login', {
+      const response = await fetch('https://dys-back-olx7.onrender.com/auth/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,6 +124,11 @@ function DyslexiaScreeningApp() {
       
       const data = await response.json();
       if (response.ok) {
+        // Store token and user data in localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('role', data.role);
+        
         setIsLoggedIn(true);
         setShowLoginModal(false);
       } else {
@@ -125,6 +139,7 @@ function DyslexiaScreeningApp() {
       alert('Login failed. Please try again.');
     }
   };
+
   const handleAnswer = (answerIndex) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
@@ -255,19 +270,31 @@ function DyslexiaScreeningApp() {
   };
 
   // Move the modals outside the main component to prevent re-renders
-  const SignupModal = ({ onClose, onSubmit, email, setEmail, password, setPassword, name, setName, role, setRole }) => {
-    const nameInputRef = useRef(null);
-  
-    // Only focus the name input when the modal first opens
-    useEffect(() => {
-      if (nameInputRef.current) {
-        nameInputRef.current.focus();
+  const SignupModal = ({ 
+    onClose, 
+    onSubmit, 
+    name, 
+    setName, 
+    email, 
+    setEmail, 
+    password, 
+    setPassword, 
+    role, 
+    setRole 
+  }) => {
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      // Validate inputs before submitting
+      if (!name || !email || !password) {
+        alert('Please fill in all fields');
+        return;
       }
-    }, []); // Empty dependency array means this only runs once when the component mounts
+      onSubmit(e);
+    };
   
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl p-6 max-w-[90%] sm:max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in mx-4">
+        <div className="signup-modal-content bg-white rounded-2xl p-6 max-w-[90%] sm:max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in mx-4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-blue-800">Create Account</h2>
             <button 
@@ -278,7 +305,7 @@ function DyslexiaScreeningApp() {
             </button>
           </div>
           
-          <form onSubmit={onSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-gray-700 mb-2 font-medium">Full Name</label>
               <div className="relative">
@@ -286,7 +313,6 @@ function DyslexiaScreeningApp() {
                   <FaUser className="text-gray-400" />
                 </div>
                 <input
-                  ref={nameInputRef}
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -361,17 +387,38 @@ function DyslexiaScreeningApp() {
 
   const LoginModal = ({ onClose, onSubmit }) => {
     const formRef = useRef(null);
-    
+    const [showSignup, setShowSignup] = useState(false);
+    const [localSignupEmail, setLocalSignupEmail] = useState('');
+    const [localSignupPassword, setLocalSignupPassword] = useState('');
+    const [localSignupName, setLocalSignupName] = useState('');
+    const [localSignupRole, setLocalSignupRole] = useState('student');
+
     const handleFormSubmit = (e) => {
       e.preventDefault();
       const formData = new FormData(formRef.current);
       const email = formData.get('email');
       const password = formData.get('password');
       
-      // Call your onSubmit function with the values
       onSubmit({ email, password });
     };
     
+    if (showSignup) {
+      return (
+        <SignupModal
+          onClose={() => setShowSignup(false)}
+          onSubmit={handleSignup}
+          email={localSignupEmail}
+          setEmail={setLocalSignupEmail}
+          password={localSignupPassword}
+          setPassword={setLocalSignupPassword}
+          name={localSignupName}
+          setName={setLocalSignupName}
+          role={localSignupRole}
+          setRole={setLocalSignupRole}
+        />
+      );
+    }
+
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-white rounded-2xl p-6 max-w-[90%] sm:max-w-md w-full shadow-2xl border border-gray-100 animate-fade-in mx-4">
@@ -421,6 +468,15 @@ function DyslexiaScreeningApp() {
                   autoComplete="current-password"
                 />
               </div>
+              <div className="text-right mt-2">
+                <button
+                  type="button"
+                  onClick={() => alert('Forgot password feature coming soon!')}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  Forgot Password?
+                </button>
+              </div>
             </div>
             
             <button
@@ -430,11 +486,31 @@ function DyslexiaScreeningApp() {
             >
               Sign In
             </button>
+
+            <div className="text-center text-sm text-gray-600 mt-4">
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={() => setShowSignup(true)}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Sign Up
+              </button>
+            </div>
           </form>
         </div>
       </div>
     );
   };
+
+  // Add useEffect to check for existing token on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 font-sans">
       {/* Navigation */}
@@ -661,20 +737,20 @@ function DyslexiaScreeningApp() {
         </footer>
       )}
 
-      {showSignupModal && (
-        <SignupModal
-          onClose={() => setShowSignupModal(false)}
-          onSubmit={handleSignup}
-          email={signupEmail}
-          setEmail={setSignupEmail}
-          password={signupPassword}
-          setPassword={setSignupPassword}
-          name={signupName}
-          setName={setSignupName}
-          role={signupRole}
-          setRole={setSignupRole}
-        />
-      )}
+{showSignupModal && (
+  <SignupModal
+    onClose={() => setShowSignupModal(false)}
+    onSubmit={handleSignup}
+    name={signupName}
+    setName={setSignupName}
+    email={signupEmail}
+    setEmail={setSignupEmail}
+    password={signupPassword}
+    setPassword={setSignupPassword}
+    role={signupRole}
+    setRole={setSignupRole}
+  />
+)}
 
       {showLoginModal && (
         <LoginModal

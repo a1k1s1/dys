@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FaMicrophone, FaCheck, FaTimes, FaArrowRight } from 'react-icons/fa';
+import axios from 'axios';
+
+// Add axios base URL configuration
+axios.defaults.baseURL = 'https://dys-back-olx7.onrender.com';
 
 const questions = [
     // Letter Identification (2 questions)
@@ -86,6 +90,7 @@ const ReadingAssessment = () => {
     const [showFeedback, setShowFeedback] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [audioBlob, setAudioBlob] = useState(null);
 
     useEffect(() => {
         // Update progress bar
@@ -95,7 +100,9 @@ const ReadingAssessment = () => {
     const handleRecord = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
+            const recorder = new MediaRecorder(stream, {
+                mimeType: 'audio/webm; codecs=opus' // Specify WebM/Opus format
+            });
             setMediaRecorder(recorder);
             
             const chunks = [];
@@ -104,41 +111,62 @@ const ReadingAssessment = () => {
             };
             
             recorder.onstop = async () => {
-                const audioBlob = new Blob(chunks, { type: 'audio/wav' });
-                const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 
-                // Create FormData for backend submission
+                // Convert to WAV format using Web Audio API
+                const audioContext = new AudioContext();
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                const wavBlob = await audioBufferToWav(audioBuffer);
+                const audioFile = new File([wavBlob], 'recording.wav', { type: 'audio/wav' });
+                
                 const formData = new FormData();
-                formData.append('audio', audioFile);
-                formData.append('questionId', currentQuestion);
-                formData.append('questionType', questions[currentQuestion].type);
+                formData.append('file', audioFile);
+                
+                // Add JSON data
+                const jsonData = {
+                    userId: "67d2fb591700e5fec9b042ec", // Updated default user ID
+                    testType: questions[currentQuestion].type === 'word_pronunciation' ? 'word' : 'sentence',
+                    expectedText: questions[currentQuestion].content,
+                    difficulty: "medium"
+                };
+                formData.append('data', JSON.stringify(jsonData));
+                
+                // Log the form data before sending
+                console.log('Sending audio file with data:', {
+                    userId: jsonData.userId,
+                    testType: jsonData.testType,
+                    expectedText: jsonData.expectedText,
+                    difficulty: jsonData.difficulty
+                });
                 
                 try {
-                    // Send to backend
-                    const response = await fetch('/api/submit-response', {
-                        method: 'POST',
-                        body: formData
+                    const response = await axios.post('/assessment/audio', formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        }
                     });
-                    
-                    const result = await response.json();
-                    setIsCorrect(result.isCorrect);
+
+                    const result = response.data;
+                    console.log('Audio processing result:', result);
+                    setIsCorrect(result.analysis.levenshtein_accuracy >= 0.8);
                     setShowFeedback(true);
                     
-                    // Add to user responses
                     const newResponses = [...userResponses];
                     newResponses[currentQuestion] = { 
                         questionId: currentQuestion,
                         response: "audio_response",
-                        isCorrect: result.isCorrect,
-                        audioUrl: result.audioUrl // Assuming backend returns stored audio URL
+                        isCorrect: result.analysis.levenshtein_accuracy >= 0.8,
+                        audioUrl: result.audioUrl
                     };
                     setUserResponses(newResponses);
                     
                 } catch (error) {
                     console.error('Error submitting response:', error);
+                    console.error('Error details:', error.response?.data || error.message);
                 }
                 
-                // Clean up
                 stream.getTracks().forEach(track => track.stop());
             };
             
@@ -148,6 +176,48 @@ const ReadingAssessment = () => {
             console.error('Error accessing microphone:', error);
         }
     };
+
+    // Helper function to convert AudioBuffer to WAV
+    function audioBufferToWav(buffer) {
+        const numOfChan = buffer.numberOfChannels;
+        const length = buffer.length * numOfChan * 2 + 44;
+        const bufferArray = new ArrayBuffer(length);
+        const view = new DataView(bufferArray);
+        
+        // Write WAV header
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + buffer.length * numOfChan * 2, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, numOfChan, true);
+        view.setUint32(24, buffer.sampleRate, true);
+        view.setUint32(28, buffer.sampleRate * 2 * numOfChan, true);
+        view.setUint16(32, numOfChan * 2, true);
+        view.setUint16(34, 16, true);
+        writeString(view, 36, 'data');
+        view.setUint32(40, buffer.length * numOfChan * 2, true);
+        
+        // Write PCM data
+        let offset = 44;
+        for (let i = 0; i < buffer.numberOfChannels; i++) {
+            const channel = buffer.getChannelData(i);
+            for (let j = 0; j < channel.length; j++) {
+                const sample = Math.max(-1, Math.min(1, channel[j]));
+                view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                offset += 2;
+            }
+        }
+        
+        return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
 
     const handleStopRecording = () => {
         if (mediaRecorder && mediaRecorder.state === "recording") {

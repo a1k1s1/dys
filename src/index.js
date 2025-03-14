@@ -12,6 +12,7 @@ import AssessmentOverview from './AssessmentOverview';
 import Handwriting from './Handwriting';
 import FirstTest from './FirstTest';
 
+import MediaCapture from './MediaCapture';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -27,6 +28,7 @@ root.render(
         <Route path='/handwriting' element={<Handwriting />} />
         <Route path='/parentdashboard' element={<ParentDashboard />} />
         <Route path='/firsttest' element={<FirstTest />} />
+        <Route path='/test' element={<MediaCapture />} />
       </Routes>
     </Router>
   </React.StrictMode>

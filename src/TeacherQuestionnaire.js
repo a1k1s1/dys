@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, ChevronLeft, ChevronRight, Send } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Send, BookOpen } from 'lucide-react';
 
 const TeacherQuestionnaire = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -103,7 +103,7 @@ const TeacherQuestionnaire = () => {
   const submitToBackend = async () => {
     setSubmitting(true);
     try {
-      const response = await fetch('http://localhost:4001/submit-questionnaire', {
+      const response = await fetch('https://dys-back-olx7.onrender.com/submit-questionnaire', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,9 +161,12 @@ const TeacherQuestionnaire = () => {
   if (completed) {
     return (
       <div className="max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-2xl">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Questionnaire Summary
-        </h1>
+        <div className="flex items-center mb-8">
+          <BookOpen className="w-10 h-10 text-indigo-600 mr-4" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Questionnaire Summary
+          </h1>
+        </div>
         
         <div className="mb-8 space-y-6">
           {teacherQuestions.map((q) => {
